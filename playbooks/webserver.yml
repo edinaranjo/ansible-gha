@@ -1,0 +1,59 @@
+---
+- name: Desplegar servidor web Apache en localhost
+  hosts: local
+  become: true
+  gather_facts: true
+
+  vars:
+    apache_service: apache2
+    apache_package: apache2
+    web_root: /var/www/html
+    web_file: /var/www/html/index.html
+
+  tasks:
+    - name: Actualizar cache de paquetes
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Instalar Apache
+      ansible.builtin.apt:
+        name: "{{ apache_package }}"
+        state: present
+
+    - name: Crear directorio web
+      ansible.builtin.file:
+        path: "{{ web_root }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Copiar pagina web personalizada
+      ansible.builtin.copy:
+        src: files/index.html
+        dest: "{{ web_file }}"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Recargar systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Iniciar y habilitar Apache
+      ansible.builtin.systemd:
+        name: "{{ apache_service }}"
+        state: started
+        enabled: true
+
+    - name: Verificar pagina web con curl
+      ansible.builtin.uri:
+        url: http://127.0.0.1
+        method: GET
+        status_code: 200
+
+    - name: Mostrar resultado final
+      ansible.builtin.debug:
+        msg:
+          - "Playbook finalizado correctamente."
+          - "Servidor web disponible en: http://127.0.0.1"
