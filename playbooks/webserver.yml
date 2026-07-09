@@ -30,7 +30,7 @@
 
     - name: Copiar pagina web personalizada
       ansible.builtin.copy:
-        src: files/index.html
+        src: ../files/index.html
         dest: "{{ web_file }}"
         owner: root
         group: root
