@@ -1,0 +1,36 @@
+name: Ansible Check
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  ansible-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Descargar código del repositorio
+        uses: actions/checkout@v4
+
+      - name: 🐍 Configurar Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: 📦 Crear ambiente virtual e instalar dependencias
+        run: |
+          python3 -m venv venv
+          ./venv/bin/python -m pip install --upgrade pip
+          ./venv/bin/pip install -r requirements.txt
+
+      - name: 🔍 Ejecutar playbook en modo check
+        run: |
+          ./venv/bin/ansible-playbook \
+            -i inventory/hosts.ini \
+            playbooks/webserver.yml \
+            --check
