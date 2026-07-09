@@ -1,0 +1,71 @@
+---
+- name: Desinstalar servidor web Apache en localhost
+  hosts: local
+  become: true
+  gather_facts: true
+
+  vars:
+    apache_service: apache2
+    apache_package: apache2
+    web_root: /var/www/html
+    web_file: /var/www/html/index.html
+
+  tasks:
+    - name: Verificar si Apache esta instalado
+      ansible.builtin.command: dpkg -s "{{ apache_package }}"
+      register: apache_installed
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Verificar si el servicio Apache existe
+      ansible.builtin.command: systemctl list-unit-files "{{ apache_service }}.service"
+      register: apache_service_check
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Detener y deshabilitar Apache
+      ansible.builtin.systemd:
+        name: "{{ apache_service }}"
+        state: stopped
+        enabled: false
+      when:
+        - not ansible_check_mode
+        - apache_service_check.rc == 0
+
+    - name: Simular detencion de Apache en modo check
+      ansible.builtin.debug:
+        msg: "Modo check: Ansible detendria y deshabilitaria el servicio {{ apache_service }} si existe."
+      when:
+        - ansible_check_mode
+        - apache_service_check.rc == 0
+
+    - name: Eliminar pagina web personalizada
+      ansible.builtin.file:
+        path: "{{ web_file }}"
+        state: absent
+
+    - name: Desinstalar Apache
+      ansible.builtin.apt:
+        name: "{{ apache_package }}"
+        state: absent
+        purge: true
+        autoremove: true
+      when:
+        - not ansible_check_mode
+        - apache_installed.rc == 0
+
+    - name: Simular desinstalacion de Apache en modo check
+      ansible.builtin.debug:
+        msg: "Modo check: Ansible eliminaria el paquete {{ apache_package }} si estuviera instalado."
+      when:
+        - ansible_check_mode
+        - apache_installed.rc == 0
+
+    - name: Mostrar resultado final
+      ansible.builtin.debug:
+        msg:
+          - "Playbook de desinstalacion finalizado."
+          - "Modo check activo: {{ ansible_check_mode }}"
+          - "Apache instalado antes de ejecutar: {{ apache_installed.rc == 0 }}"
